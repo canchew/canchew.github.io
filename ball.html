@@ -1,0 +1,211 @@
+ 
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>To kill boring time</title>
+<script>
+
+      // requestAnim shim layer by Paul Irish
+      window.requestAnimFrame = (function(){
+        return  window.requestAnimationFrame       ||
+          window.webkitRequestAnimationFrame ||
+          window.mozRequestAnimationFrame    ||
+          window.oRequestAnimationFrame      ||
+          window.msRequestAnimationFrame     ||
+          function(/* function */ callback, /* DOMElement */ element){
+          window.setTimeout(callback, 1000 / 60);
+        };
+      })();
+
+
+      /*
+      *the speed constant
+      */
+      var INIT_BALL_NUM = 10;
+      var NEW_BALL_NUM = 3;
+      var speedEnum = [2, 3, 4, 5, 6];
+      var colorEnum = ['#FF66FF','#FFFF99','#99CCFF','#66FF99', '#FF0033'];
+      var rEnum = [15,20,25];
+
+      var canvas, context,
+      width, height;
+
+      var lastY = 0;
+      var ballList = [];
+      var ballListBuffer = [];
+      var newBallList = [];
+
+      function Ball(x, y, r, speed, color){
+          this.x = x;
+          this.y = y;
+          this.r = r;
+          this.speed = speed;
+          this.color = color;
+          this.show = true;
+      }
+
+      Ball.prototype.setX = function(x){
+          this.x = x
+      };
+      Ball.prototype.setY = function(y){
+          this.y = y
+      };
+      Ball.prototype.getX = function(){
+          return this.x;
+      };
+      Ball.prototype.getY = function(){
+          return this.y;
+      };
+      Ball.prototype.getSpeed = function(){
+          return this.speed;
+      };
+      Ball.prototype.getColor = function(){
+          return this.color;
+      };
+      Ball.prototype.getR = function(){
+          return this.r;
+      };
+      Ball.prototype.getShow = function(){
+          return this.show;
+      };
+      Ball.prototype.setShow = function(show){
+          this.show = show;
+      };
+
+      function sortByR(ballList,beginIndex){
+          if(ballList == null || ballList.length == 0){
+              return;
+          }
+          if(beginIndex < 0 || beginIndex >= ballList.length - 1){
+              return;
+          }
+          for(var i = beginIndex,count = 0; i < ballList.length - 1; i++){
+              var exchanged = false;
+              for(var j = beginIndex; j < ballList.length - count - 1; j++){
+                  if(ballList[j].getR() > ballList[j + 1].getR()){
+                      var temp = ballList[j];
+                      ballList[j] = ballList[j + 1];
+                      ballList[j + 1] = temp;
+                      exchanged = true;
+                  }
+              }
+              count++;
+              if(!exchanged){
+                break;
+              }
+          }
+      }
+
+      function init() {
+
+        canvas = document.getElementById( 'main-canvas' );
+
+        context = canvas.getContext( '2d' );
+
+        width = canvas.width;
+
+        height = canvas.height;
+
+        //init the ball x and y value
+        for(var i = 0; i < INIT_BALL_NUM; i++){
+          var color = colorEnum[Math.floor(Math.random()*colorEnum.length)];
+          var speed = speedEnum[Math.floor(Math.random()*speedEnum.length)];
+          var R = rEnum[Math.floor(Math.random()*rEnum.length)];
+          var ball = new Ball(Math.random()*width, height + Math.random()*height/2, R, speed, color);
+          ballList[i] = ball;
+        }
+
+      }
+
+      function animate() {
+        requestAnimFrame(animate);
+        draw(width, height);
+      }
+
+      function draw(canvasWidth, canvasHeight) {
+        var needSwap = false;
+        for(var i = 0; i < ballList.length; i++){
+
+          var ball = ballList[i];
+          if(ball == null){
+            continue;
+          }
+          var newY = ball.getY() - ball.getSpeed();
+          if(ball.getShow() == true && newY >= -ball.getR()){
+              var y = ball.getY() - ball.getSpeed();
+              ball.setY(y);
+          }else{//add new ball
+              ball.setShow(false);
+              //generate the backUpBallList
+              for (var j = 0; j < NEW_BALL_NUM; j++) {//3 ready every time
+                var color = colorEnum[Math.floor(Math.random()*colorEnum.length)];
+                var speed = speedEnum[Math.floor(Math.random()*speedEnum.length)];
+                var R = rEnum[Math.floor(Math.random()*rEnum.length)];
+                var newBall = new Ball(Math.random()*width, height + Math.random()*height/2, R, speed, color);
+                newBallList[j] = newBall;
+              }
+              needSwap = true;
+          }
+        }
+
+        if(needSwap){
+            for(var i = 0; i < ballList.length; i++){
+                var ball = ballList[i];
+                //dont use null to tell if ball is out
+                if(ball != null && ball.getShow() == true){
+                    ballListBuffer.push(ball);
+                }
+            }
+            var ifAdd = Math.floor(Math.random()*2);
+            if(ballList.length <= 2 || ifAdd == 1){
+              var newBallNum = Math.floor(Math.random()*(NEW_BALL_NUM ));//0,1,2
+              for(var i = 0; i <= newBallNum; i ++){
+                  ballListBuffer.push(newBallList[i]);
+              }
+            }
+            /*ballList.length = 0;//clear origin balls
+            ballList = ballList.concat(ballListBuffer.concat());
+            ballListBuffer.length = 0;*/
+            ballList = [];
+            ballList = ballListBuffer;
+            ballListBuffer = [];
+        }
+
+        //background
+        context.fillStyle = '#FFFFFF';
+        context.fillRect( 0, 0, width, height );
+
+        //order by ball's R asc
+        sortByR(ballList, 0);
+
+        for(var i = 0; i < ballList.length; i++){
+          //draw the ball
+          var ball = ballList[i];
+          if(ball == null)continue;
+          context.fillStyle = ball.getColor();
+          context.beginPath();
+          context.arc( ball.getX(), ball.getY(), ball.getR(), 0, Math.PI * 2, true );
+          context.closePath();
+          context.fill();
+        }
+      }
+      window.onload = function(){
+        init()
+        animate();
+      }
+
+    </script>
+
+    <script>
+
+    </script>
+  </head>
+  <body>
+      <div style="text-align:center;">
+        <canvas id="main-canvas" width="1024" height="512" style="margin: 0px auto;border: 1px solid #e8e8e8;"></canvas>    
+      </div>
+  </body>
+</html>
+
+
